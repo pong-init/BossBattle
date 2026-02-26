@@ -144,9 +144,45 @@ bossbattle/
 │   └── seed_github.py         # Plants realistic commit history
 ├── contrib/
 │   └── arcade_evals_backends/ # Upstream contribution (PR #783)
-└── vibe-coding/
-    └── friction-journal.md    # Development friction log
+├── tron/
+│   ├── policies.yaml          # Declarative policy rules (the centerpiece)
+│   ├── engine.py              # Generic policy evaluator
+│   ├── server.py              # FastAPI webhook server (:4242)
+│   ├── models.py              # Pydantic models (Arcade webhook contract)
+│   └── tests/test_engine.py   # 26 unit tests
+└── vibe-coding/               # AI-assisted development session logs
+    ├── session-01-architecture.md  # Planning, MCP adapters, Gemini swap, PR #783
+    ├── session-02-observability.md # Traces vs metrics, debugging saga
+    ├── session-03-tron.md          # HITL → Contextual Access pivot, naming Tron
+    ├── session-04-deliverable.md   # Retrospective, doc critique
+    └── friction-journal.md         # Platform friction log with enterprise critiques
 ```
+
+## Tron — Policy Engine (Contextual Access)
+
+A config-driven policy engine implementing Arcade's [Contextual Access](https://docs.arcade.dev/en/guides/contextual-access) webhook API. Named after the 1982 arcade game where Tron is a security program that monitors the system — and the villain is the MCP.
+
+Policies are declarative YAML that non-coders can read, audit, and edit. The server is generic plumbing.
+
+```bash
+make tron              # Start policy server on :4242
+make tron-test         # Run 26 unit tests
+make tron-ngrok        # Instructions for live Arcade integration
+```
+
+See `tron/policies.yaml` for all rules — P3/P4 email blocking, incident ID requirements, recipient allow-lists, PII redaction.
+
+## Vibe Coding Artifacts
+
+The `vibe-coding/` folder contains curated logs of the AI-assisted development sessions used to build this project. Each file documents key decisions, actual exchanges with the AI assistant, and what changed as a result:
+
+| Session | What happened |
+|---------|--------------|
+| [session-01](vibe-coding/session-01-architecture.md) | Architecture planning, MCP adapter discovery, model swap, eval PR |
+| [session-02](vibe-coding/session-02-observability.md) | Observability debugging saga (traces vs metrics, Docker networking) |
+| [session-03](vibe-coding/session-03-tron.md) | HITL → Contextual Access pivot, naming Tron, policy engine build |
+| [session-04](vibe-coding/session-04-deliverable.md) | Plan vs reality retrospective, deliverable doc critique |
+| [friction-journal](vibe-coding/friction-journal.md) | 10 platform friction entries with enterprise critiques |
 
 ## Built With
 
