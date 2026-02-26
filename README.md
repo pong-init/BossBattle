@@ -154,8 +154,7 @@ bossbattle/
     ├── session-01-architecture.md  # Planning, MCP adapters, Gemini swap, PR #783
     ├── session-02-observability.md # Traces vs metrics, debugging saga
     ├── session-03-tron.md          # HITL → Contextual Access pivot, naming Tron
-    ├── session-04-deliverable.md   # Retrospective, doc critique
-    └── friction-journal.md         # Platform friction log with enterprise critiques
+    └── session-04-deliverable.md   # Retrospective, doc critique
 ```
 
 ## Tron — Policy Engine (Contextual Access)
@@ -182,7 +181,6 @@ The `vibe-coding/` folder contains curated logs of the AI-assisted development s
 | [session-02](vibe-coding/session-02-observability.md) | Observability debugging saga (traces vs metrics, Docker networking) |
 | [session-03](vibe-coding/session-03-tron.md) | HITL → Contextual Access pivot, naming Tron, policy engine build |
 | [session-04](vibe-coding/session-04-deliverable.md) | Plan vs reality retrospective, deliverable doc critique |
-| [friction-journal](vibe-coding/friction-journal.md) | 10 platform friction entries with enterprise critiques |
 
 ## Built With
 
