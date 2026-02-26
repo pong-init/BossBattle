@@ -3,15 +3,19 @@ name = "bossbattle"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    "langchain-arcade>=1.4",
     "langchain-google-genai",
+    "langchain-mcp-adapters",
     "langgraph",
-    "arcade-ai[evals]",
+    "pydantic",
+    "python-dotenv",
+    "arcadepy",
+    "openai",
+    "arcade-core",
+    "arcade-evals",
     "opentelemetry-api",
     "opentelemetry-sdk",
     "opentelemetry-exporter-otlp",
-    "pydantic>=2.0",
-    "python-dotenv",
+    "opentelemetry-instrumentation-langchain",
 ]
 
 [build-system]

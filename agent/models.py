@@ -1,4 +1,4 @@
-from typing import Optional, Annotated
+from typing import Any, Optional, Annotated
 from pydantic import BaseModel
 from langgraph.graph.message import add_messages
 
@@ -28,11 +28,11 @@ class IncidentState(BaseModel):
 
     # Triage output
     severity: Optional[str] = None          # P1, P2, P3, P4
-    severity_justification: Optional[str] = None
+    severity_justification: Optional[Any] = None
 
     # Context output
     relevant_commits: Optional[list[dict]] = None
-    github_summary: Optional[str] = None
+    github_summary: Optional[Any] = None
 
     # Ticket output
     linear_ticket_url: Optional[str] = None
@@ -41,7 +41,7 @@ class IncidentState(BaseModel):
     # Notify output
     slack_message_sent: bool = False
     email_sent: bool = False
-    notifications_summary: Optional[str] = None
+    notifications_summary: Optional[Any] = None
 
     # LangGraph messages (for tool calls within nodes)
     messages: Annotated[list, add_messages] = []

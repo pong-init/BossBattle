@@ -1,14 +1,9 @@
-from langchain_core.messages import HumanMessage, SystemMessage
-from langgraph.prebuilt import ToolNode
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from agent.models import IncidentState
 from agent.prompts import SYSTEM_PROMPT, CONTEXT_PROMPT
-from agent.config import model_with_tools, tools
 
 
-_tool_node = ToolNode(tools)
-
-
-def context_node(state: IncidentState) -> dict:
+async def context_node(state: IncidentState, model_with_tools, tools_by_name: dict) -> dict:
     """Search GitHub for recent commits related to the incident."""
     print(f"\n[CONTEXT] Gathering GitHub context for service: {state.incident.service}")
 
@@ -22,19 +17,28 @@ def context_node(state: IncidentState) -> dict:
         HumanMessage(content=prompt),
     ]
 
-    # Agentic loop: keep calling tools until the model stops
+    # Agentic tool-calling loop — interrupt() fires inside each tool on auth
     while True:
-        response = model_with_tools.invoke(messages)
+        response = await model_with_tools.ainvoke(messages)
         messages.append(response)
 
         if not response.tool_calls:
             break
 
-        # Execute tool calls (may trigger LangGraph interrupt for OAuth)
-        tool_results = _tool_node.invoke({"messages": messages})
-        messages.extend(tool_results["messages"])
+        for tool_call in response.tool_calls:
+            tool = tools_by_name.get(tool_call["name"])
+            if tool:
+                print(f"[CONTEXT] Tool call: {tool_call['name']}")
+                print(f"[CONTEXT] Args: {tool_call['args']}")
+                try:
+                    result = await tool.ainvoke(tool_call["args"])
+                    print(f"[CONTEXT] Result: {str(result)[:500]}")
+                except Exception as e:
+                    result = f"Tool error: {e}"
+                    print(f"[CONTEXT] Tool error: {e}")
+                messages.append(ToolMessage(content=str(result), tool_call_id=tool_call["id"]))
 
-    summary = response.content
+    summary = str(response.content)
     print(f"[CONTEXT] GitHub summary: {summary[:200]}...")
 
     return {

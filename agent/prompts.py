@@ -44,41 +44,31 @@ Incident details:
 
 CONTEXT_PROMPT = """You are BossBattle gathering incident context from GitHub.
 
-Search the repository `pong-init/pixelcorp-backend` for commits in the last 7 days
-related to the affected service: `{service}`.
+List recent pull requests in the pong-init/pixelcorp-backend repository to find changes related to the "{service}" service.
 
-Look especially for:
-- Changes to authentication, configuration, or dependencies
-- Anything that could explain: {description}
+Use the GithubApi_ListPullRequests tool with:
+- repo_owner: pong-init
+- repo_name: pixelcorp-backend
+- state: closed
 
-Summarize what you find in 2-3 sentences, highlighting the most suspicious commit if any.
+Look at the PR titles and descriptions for anything that could explain: {description}
+
+Focus on:
+- Recent migrations, provider changes, or configuration updates
+- Anything related to authentication, external dependencies, or error handling
+
+Summarize what you find in 2-3 sentences. If a PR shows a risky change (migration, provider swap, config update), highlight it as the likely root cause.
 """
 
 TICKET_PROMPT = """You are BossBattle creating a Linear incident ticket.
 
-Create a Linear issue with:
-- Title: "[{severity}] {incident_title}"
-- Description (markdown):
-  ## Incident Summary
-  {description}
+You MUST call the Linear_CreateIssue tool with these exact parameters:
+- team: "PixelCorp"
+- title: "[{severity}] {incident_title}"
+- priority: "{priority}"
+- description: "## Incident Summary\\n{description}\\n\\n## Severity: {severity}\\n{justification}\\n\\n## Metrics\\n- Error rate: {error_rate}\\n- Users affected: {affected_users}\\n\\n## Potential Root Cause\\n{github_summary}\\n\\n## Source\\nIncident ID: {incident_id}\\nStarted: {started_at}\\nSource: {source}"
 
-  ## Severity: {severity}
-  {justification}
-
-  ## Metrics
-  - Error rate: {error_rate}
-  - Users affected: {affected_users}
-
-  ## Potential Root Cause
-  {github_summary}
-
-  ## Source
-  Incident ID: {incident_id}
-  Started: {started_at}
-  Source: {source}
-- Priority: {priority}
-
-Return the created ticket URL.
+Call the tool now. After the tool returns, report the ticket URL.
 """
 
 NOTIFY_PROMPT = """You are BossBattle sending incident notifications.
@@ -88,9 +78,10 @@ Ticket: {ticket_url}
 Summary: {description}
 Metrics: {error_rate} error rate, {affected_users} users affected
 
-Actions required:
-1. Post to Slack channel #incidents with a clear, concise alert message including the severity, title, and Linear ticket link.
-2. {"Also send an email to " + vp_email + " with subject '[" + severity + " INCIDENT] " + incident_title + "' and a brief summary." if send_email else "Do NOT send an email (P3/P4 severity — Slack only)."}
+You MUST perform these actions in order:
 
-Confirm each action after completing it.
+1. Call Slack_SendMessage with channel_name "#incidents" and a message containing the severity, title, metrics, and Linear ticket link.
+2. {email_instruction}
+
+Do NOT skip any required action. Call the tools now.
 """
