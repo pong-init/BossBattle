@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BossBattle — Enterprise PM Take-Home | Arcade AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ───────────────────────── RESET & BASE ───────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-snap-type: y proximity; font-size: 16px; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #06060b;
+  color: #e0e0e8;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+
+/* ───────────────────────── PROGRESS BAR ───────────────────────── */
+#progress {
+  position: fixed; top: 0; left: 0; height: 3px; z-index: 1000;
+  background: linear-gradient(90deg, #00d4ff, #7b61ff, #ff6b35);
+  width: 0%; transition: width 0.15s ease-out;
+}
+
+/* ───────────────────────── NAV DOTS ───────────────────────── */
+#nav-dots {
+  position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
+  z-index: 999; display: flex; flex-direction: column; gap: 12px;
+}
+.nav-dot {
+  width: 10px; height: 10px; border-radius: 50%; border: 2px solid #3a3a4a;
+  background: transparent; cursor: pointer; transition: all 0.3s ease;
+  position: relative;
+}
+.nav-dot.active { background: #00d4ff; border-color: #00d4ff; box-shadow: 0 0 12px rgba(0,212,255,0.5); }
+.nav-dot:hover { border-color: #00d4ff; }
+.nav-dot .tooltip {
+  position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+  background: #1a1a2e; color: #e0e0e8; padding: 4px 10px; border-radius: 6px;
+  font-size: 0.7rem; white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s; border: 1px solid #2a2a3e;
+}
+.nav-dot:hover .tooltip { opacity: 1; }
+
+/* ───────────────────────── SECTIONS ───────────────────────── */
+section {
+  min-height: 100vh; scroll-snap-align: start;
+  display: flex; align-items: center; justify-content: center;
+  padding: 80px 40px; position: relative;
+}
+.section-inner {
+  max-width: 1100px; width: 100%; position: relative;
+}
+
+/* ───────────────────────── ANIMATION SYSTEM ───────────────────────── */
+.reveal { opacity: 0; transform: translateY(30px); transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+.reveal-delay-5 { transition-delay: 0.5s; }
+
+/* ───────────────────────── TYPOGRAPHY ───────────────────────── */
+h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; }
+h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 1.5rem; }
+h3 { font-size: clamp(1.1rem, 2vw, 1.4rem); font-weight: 600; line-height: 1.3; margin-bottom: 0.75rem; }
+p { font-size: clamp(0.95rem, 1.2vw, 1.1rem); color: #b0b0c0; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ───────────────────────── ACCENT COLORS ───────────────────────── */
+.accent-cyan { color: #00d4ff; }
+.accent-purple { color: #7b61ff; }
+.accent-orange { color: #ff6b35; }
+.accent-green { color: #00e88f; }
+.accent-yellow { color: #ffd93d; }
+.accent-red { color: #ff4757; }
+
+/* ───────────────────────── TAGS / BADGES ───────────────────────── */
+.tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tag-cyan { background: rgba(0,212,255,0.12); color: #00d4ff; border: 1px solid rgba(0,212,255,0.25); }
+.tag-purple { background: rgba(123,97,255,0.12); color: #7b61ff; border: 1px solid rgba(123,97,255,0.25); }
+.tag-orange { background: rgba(255,107,53,0.12); color: #ff6b35; border: 1px solid rgba(255,107,53,0.25); }
+.tag-green { background: rgba(0,232,143,0.12); color: #00e88f; border: 1px solid rgba(0,232,143,0.25); }
+
+/* ───────────────────────── CARDS ───────────────────────── */
+.card {
+  background: linear-gradient(135deg, #0f0f1a 0%, #13132a 100%);
+  border: 1px solid #1e1e35; border-radius: 16px;
+  padding: 28px; transition: all 0.35s ease; position: relative; overflow: hidden;
+}
+.card:hover { border-color: #2e2e4a; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+.card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, #00d4ff, transparent); opacity: 0;
+  transition: opacity 0.3s;
+}
+.card:hover::before { opacity: 1; }
+
+.card-grid { display: grid; gap: 20px; }
+.card-grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.card-grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.card-grid-4 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+/* ───────────────────────── STAT COUNTERS ───────────────────────── */
+.stat-row { display: flex; gap: 40px; flex-wrap: wrap; margin: 2rem 0; }
+.stat { text-align: center; }
+.stat-number { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 0.8rem; color: #7a7a90; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+/* ───────────────────────── TIMELINE ───────────────────────── */
+.timeline { position: relative; padding-left: 40px; }
+.timeline::before {
+  content: ''; position: absolute; left: 14px; top: 0; bottom: 0; width: 2px;
+  background: linear-gradient(180deg, #00d4ff, #7b61ff, #ff6b35);
+}
+.timeline-item { position: relative; margin-bottom: 2.5rem; }
+.timeline-item::before {
+  content: ''; position: absolute; left: -33px; top: 6px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #06060b; border: 3px solid #00d4ff;
+}
+.timeline-item:nth-child(2)::before { border-color: #7b61ff; }
+.timeline-item:nth-child(3)::before { border-color: #ff6b35; }
+.timeline-month {
+  font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; margin-bottom: 0.5rem;
+}
+
+/* ───────────────────────── CODE BLOCKS ───────────────────────── */
+.code-block {
+  background: #0c0c18; border: 1px solid #1e1e35; border-radius: 12px;
+  padding: 20px 24px; overflow-x: auto; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem; line-height: 1.7; color: #c0c0d8; position: relative;
+}
+.code-block .comment { color: #5a5a7a; }
+.code-block .keyword { color: #7b61ff; }
+.code-block .string { color: #00e88f; }
+.code-block .function { color: #00d4ff; }
+.code-block .type { color: #ff6b35; }
+.code-label {
+  position: absolute; top: 12px; right: 16px; font-size: 0.65rem;
+  color: #4a4a60; text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+/* ───────────────────────── ARCHITECTURE DIAGRAM ───────────────────────── */
+.arch-diagram {
+  background: #0a0a16; border: 1px solid #1e1e35; border-radius: 16px;
+  padding: 32px; font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(0.6rem, 1vw, 0.78rem); line-height: 1.5;
+  overflow-x: auto; white-space: pre; color: #8888a8;
+}
+.arch-diagram .highlight { color: #00d4ff; font-weight: 600; }
+.arch-diagram .node { color: #ff6b35; }
+.arch-diagram .service { color: #00e88f; }
+.arch-diagram .arrow { color: #5a5a7a; }
+
+/* ───────────────────────── TABLES ───────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+.data-table th {
+  text-align: left; padding: 10px 16px; font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.08em; color: #6a6a80;
+  border-bottom: 2px solid #1e1e35;
+}
+.data-table td { padding: 12px 16px; border-bottom: 1px solid #12121f; font-size: 0.9rem; }
+.data-table tr:hover td { background: rgba(0,212,255,0.03); }
+
+/* ───────────────────────── QUOTE BLOCK ───────────────────────── */
+.insight-box {
+  border-left: 3px solid #7b61ff; padding: 16px 20px; margin: 1.5rem 0;
+  background: rgba(123,97,255,0.06); border-radius: 0 8px 8px 0;
+}
+.insight-box p { color: #c0c0d8; font-style: italic; }
+.insight-box .attribution { font-style: normal; color: #7b61ff; font-size: 0.85rem; margin-top: 8px; }
+
+/* ───────────────────────── DIVIDER ───────────────────────── */
+.divider { height: 1px; background: linear-gradient(90deg, transparent, #1e1e35, transparent); margin: 2rem 0; }
+
+/* ───────────────────────── HERO SPECIFIC ───────────────────────── */
+#hero { background: radial-gradient(ellipse at 50% 30%, rgba(0,212,255,0.06) 0%, transparent 60%); }
+#hero h1 .line { display: block; }
+#hero .subtitle {
+  font-size: clamp(1rem, 1.8vw, 1.3rem); color: #7a7a90;
+  margin-top: 1.5rem; font-weight: 400; max-width: 650px;
+}
+#hero .cta-row { display: flex; gap: 16px; margin-top: 2.5rem; flex-wrap: wrap; }
+#hero .cta-row a {
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px;
+  border-radius: 10px; font-size: 0.9rem; font-weight: 600;
+  text-decoration: none; transition: all 0.3s;
+}
+.cta-primary {
+  background: linear-gradient(135deg, #00d4ff, #0090ff); color: #06060b;
+}
+.cta-primary:hover { box-shadow: 0 4px 20px rgba(0,212,255,0.35); transform: translateY(-1px); }
+.cta-secondary {
+  background: transparent; color: #00d4ff; border: 1px solid rgba(0,212,255,0.3);
+}
+.cta-secondary:hover { background: rgba(0,212,255,0.08); border-color: #00d4ff; }
+.hero-tags { display: flex; gap: 10px; margin-top: 2rem; flex-wrap: wrap; }
+.scroll-hint {
+  position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+  color: #3a3a4a; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* ───────────────────────── SECTION LABELS ───────────────────────── */
+.section-label {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.15em; color: #4a4a60; margin-bottom: 1rem;
+}
+
+/* ───────────────────────── ABOUT ME ───────────────────────── */
+.career-item { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 1.2rem; }
+.career-dot {
+  min-width: 8px; height: 8px; border-radius: 50%; margin-top: 8px;
+}
+.career-info { flex: 1; }
+.career-company { font-weight: 600; color: #e0e0e8; }
+.career-role { font-size: 0.85rem; color: #7a7a90; }
+.career-impact { font-size: 0.85rem; color: #b0b0c0; margin-top: 2px; }
+
+/* ───────────────────────── GAP ANALYSIS ───────────────────────── */
+.gap-severity { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.severity-bar {
+  height: 4px; border-radius: 2px; flex: 1; max-width: 120px;
+}
+
+/* ───────────────────────── FOOTER ───────────────────────── */
+#footer { min-height: auto; padding: 40px; background: #04040a; }
+#footer .section-inner { text-align: center; }
+
+/* ───────────────────────── RESPONSIVE ───────────────────────── */
+@media (max-width: 768px) {
+  section { padding: 60px 20px; }
+  #nav-dots { right: 12px; }
+  .nav-dot .tooltip { display: none; }
+  .stat-row { gap: 24px; }
+  .stat-number { font-size: 2rem; }
+  .card { padding: 20px; }
+  .code-block { font-size: 0.72rem; padding: 16px; }
+  .timeline { padding-left: 30px; }
+  .arch-diagram { font-size: 0.55rem; padding: 16px; }
+  .hero-tags { gap: 6px; }
+  .cta-row { flex-direction: column; }
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.5rem; }
+  .stat-row { flex-direction: column; align-items: center; }
+  .card-grid-2, .card-grid-3, .card-grid-4 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ PROGRESS BAR ═══════════════════ -->
+<div id="progress"></div>
+
+<!-- ═══════════════════ NAV DOTS ═══════════════════ -->
+<nav id="nav-dots"></nav>
+
+<!-- ═══════════════════ SECTION 1: HERO ═══════════════════ -->
+<section id="hero">
+  <div class="section-inner">
+    <div class="reveal">
+      <h1>
+        <span class="line">BossBattle<span class="accent-cyan">.</span></span>
+        <span class="line" style="color: #7a7a90; font-weight: 400; font-size: 0.5em; margin-top: 0.5rem;">
+          Enterprise PM Take-Home for Arcade AI
+        </span>
+      </h1>
+    </div>
+    <p class="subtitle reveal reveal-delay-1">
+      An AI incident response agent that triages production incidents, investigates root causes, creates tickets, and notifies the right people &mdash; built on Arcade's MCP Gateway, LangGraph, and Gemini.
+    </p>
+    <div class="hero-tags reveal reveal-delay-2">
+      <span class="tag tag-cyan">LangGraph</span>
+      <span class="tag tag-purple">MCP Gateway</span>
+      <span class="tag tag-orange">Gemini 2.5 Flash</span>
+      <span class="tag tag-green">Tron Policy Engine</span>
+    </div>
+    <div class="cta-row reveal reveal-delay-3">
+      <a href="https://github.com/pong-init/BossBattle" class="cta-primary" target="_blank">View on GitHub &rarr;</a>
+      <a href="#tldr" class="cta-secondary">Jump to TL;DR &darr;</a>
+    </div>
+  </div>
+  <div class="scroll-hint">Scroll to explore</div>
+</section>
+
+<!-- ═══════════════════ SECTION 2: ABOUT ME ═══════════════════ -->
+<section id="about">
+  <div class="section-inner">
+    <div class="section-label reveal">About Me</div>
+    <h2 class="reveal">Sound engineer turned PM<span class="accent-cyan">.</span></h2>
+    <p class="reveal reveal-delay-1" style="max-width: 700px; margin-bottom: 2rem;">
+      I started in recording studios, then fell into enterprise software. The throughline: understanding complex systems, bridging technical and non-technical stakeholders, and shipping things that move revenue.
+    </p>
+
+    <div class="card-grid card-grid-2">
+      <div class="card reveal reveal-delay-1">
+        <h3>Career Arc</h3>
+        <div class="career-item">
+          <div class="career-dot" style="background: #ff6b35;"></div>
+          <div class="career-info">
+            <div class="career-company">Vanta / Fiddler AI / Amplitude</div>
+            <div class="career-role">Senior PM &mdash; AI, Observability, Analytics</div>
+            <div class="career-impact">Enterprise AI trust, ML monitoring, product analytics</div>
+          </div>
+        </div>
+        <div class="career-item">
+          <div class="career-dot" style="background: #7b61ff;"></div>
+          <div class="career-info">
+            <div class="career-company">Box / LinkedIn / Netflix</div>
+            <div class="career-role">PM &amp; Engineering Lead</div>
+            <div class="career-impact">Platform infrastructure, content systems, security</div>
+          </div>
+        </div>
+        <div class="career-item">
+          <div class="career-dot" style="background: #00d4ff;"></div>
+          <div class="career-info">
+            <div class="career-company">Uber</div>
+            <div class="career-role">Product Manager &mdash; Uber Eats</div>
+            <div class="career-impact">Marketplace ops at hyper-scale</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card reveal reveal-delay-2">
+        <h3>By the Numbers</h3>
+        <div class="stat-row" style="justify-content: flex-start;">
+          <div class="stat">
+            <div class="stat-number accent-cyan">3</div>
+            <div class="stat-label">Patents</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number accent-purple">10+</div>
+            <div class="stat-label">Years in Product</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <h3 style="margin-top: 1rem;">Why Arcade</h3>
+        <p style="font-size: 0.9rem;">
+          I've shipped ML monitoring at Fiddler, trust products at Vanta, and analytics at Amplitude.
+          Arcade sits at the intersection of all three: agent observability, tool governance, and developer experience.
+          That's my wheelhouse.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 3: ASSIGNMENT ═══════════════════ -->
+<section id="assignment">
+  <div class="section-inner">
+    <div class="section-label reveal">The Assignment</div>
+    <h2 class="reveal">Build an AI agent. Write the memo<span class="accent-purple">.</span></h2>
+    <p class="reveal reveal-delay-1" style="max-width: 700px; margin-bottom: 2rem;">
+      Arcade's take-home asked for an AI agent using the MCP Gateway, plus a product memo covering platform gaps, a 90-day roadmap, and strategic recommendations.
+    </p>
+
+    <div class="card-grid card-grid-3 reveal reveal-delay-2">
+      <div class="card">
+        <span class="tag tag-cyan" style="margin-bottom: 12px;">Build</span>
+        <h3>The Agent</h3>
+        <p>Create a working AI agent using Arcade's MCP Gateway that demonstrates real tool integrations (GitHub, Linear, Slack, Gmail).</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-purple" style="margin-bottom: 12px;">Analyze</span>
+        <h3>Platform Gaps</h3>
+        <p>Document UX friction, missing features, and developer experience issues found while building. Evidence-based, not theoretical.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-orange" style="margin-bottom: 12px;">Strategize</span>
+        <h3>90-Day Roadmap</h3>
+        <p>Propose a prioritized roadmap for the enterprise PM role. Sequence, tradeoffs, and "what we're NOT doing" decisions.</p>
+      </div>
+    </div>
+
+    <div class="insight-box reveal reveal-delay-3">
+      <p>"I didn't just write about the product. I shipped code, filed a real PR upstream, and built a prototype that runs."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 4: TL;DR ═══════════════════ -->
+<section id="tldr">
+  <div class="section-inner">
+    <div class="section-label reveal">Executive Summary</div>
+    <h2 class="reveal">TL;DR<span class="accent-orange">.</span></h2>
+
+    <div class="card reveal reveal-delay-1" style="margin-bottom: 2rem;">
+      <p style="font-size: 1.05rem; color: #e0e0e8; line-height: 1.7;">
+        I built <strong>BossBattle</strong>, an AI incident response agent on Arcade's MCP Gateway. It triages P1&ndash;P4 incidents, searches GitHub for root causes, creates Linear tickets, and notifies teams via Slack and email &mdash; all in under 15 seconds per incident.
+      </p>
+      <div class="divider"></div>
+      <p style="font-size: 1.05rem; color: #e0e0e8; line-height: 1.7;">
+        Along the way, I contributed <strong>PR #783</strong> to Arcade's eval framework (provider-agnostic inference backends), built <strong>Tron</strong> (a config-driven policy engine implementing Contextual Access), and stood up a full <strong>OpenTelemetry observability stack</strong>.
+      </p>
+    </div>
+
+    <div class="stat-row reveal reveal-delay-2" style="justify-content: center;">
+      <div class="stat">
+        <div class="stat-number accent-cyan">4</div>
+        <div class="stat-label">Pipeline Nodes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number accent-purple">11</div>
+        <div class="stat-label">Eval Cases</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number accent-orange">26</div>
+        <div class="stat-label">Unit Tests</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number accent-green">&lt;15s</div>
+        <div class="stat-label">E2E Per Incident</div>
+      </div>
+    </div>
+
+    <div class="card-grid card-grid-4 reveal reveal-delay-3">
+      <div class="card" style="text-align: center; padding: 20px;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">&#9889;</div>
+        <div style="font-weight: 600; font-size: 0.85rem;">Triage</div>
+        <div style="font-size: 0.75rem; color: #7a7a90;">P1&ndash;P4 classification</div>
+      </div>
+      <div class="card" style="text-align: center; padding: 20px;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">&#128269;</div>
+        <div style="font-weight: 600; font-size: 0.85rem;">Investigate</div>
+        <div style="font-size: 0.75rem; color: #7a7a90;">GitHub root cause</div>
+      </div>
+      <div class="card" style="text-align: center; padding: 20px;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">&#127915;</div>
+        <div style="font-size: 0.75rem; color: #7a7a90;">Linear tickets</div>
+        <div style="font-weight: 600; font-size: 0.85rem;">Ticket</div>
+      </div>
+      <div class="card" style="text-align: center; padding: 20px;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">&#128227;</div>
+        <div style="font-weight: 600; font-size: 0.85rem;">Notify</div>
+        <div style="font-size: 0.75rem; color: #7a7a90;">Slack + Email</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 5: ARCHITECTURE ═══════════════════ -->
+<section id="architecture">
+  <div class="section-inner">
+    <div class="section-label reveal">System Design</div>
+    <h2 class="reveal">Architecture<span class="accent-cyan">.</span></h2>
+    <p class="reveal reveal-delay-1" style="max-width: 700px; margin-bottom: 2rem;">
+      A 4-node LangGraph pipeline where each node receives <strong>only the tools it needs</strong>. Triage uses pure LLM reasoning with no tools. Context gathering gets GitHub. Ticket creation gets Linear. Notifications get Slack + Gmail.
+    </p>
+
+    <div class="arch-diagram reveal reveal-delay-2"><span class="arrow">                         </span><span class="highlight">Arcade MCP Gateway</span>
+<span class="arrow">                    ┌──────────────────────────┐</span>
+<span class="arrow">                    │  </span><span class="service">GitHub</span>  <span class="service">Linear</span>  <span class="service">Slack</span><span class="arrow">    │</span>
+<span class="arrow">                    │  </span>Search  Create  Send<span class="arrow">     │</span>
+<span class="arrow">                    │  </span>Commits Issue   Message<span class="arrow">  │</span>
+<span class="arrow">                    │                  </span><span class="service">Gmail</span> Send<span class="arrow"> │</span>
+<span class="arrow">                    └──────────┬───────────────┘</span>
+<span class="arrow">                               │</span>
+  seed/incidents.json<span class="arrow">          │ </span><span class="highlight">MCP (tool calls)</span>
+<span class="arrow">        │                      │</span>
+<span class="arrow">        ▼                      ▼</span>
+<span class="arrow">  ┌──────────┐   ┌─────────────────────────────────────────────────────┐</span>
+<span class="arrow">  │</span> Incident<span class="arrow"> │──▶│              </span><span class="highlight">LangGraph Pipeline</span><span class="arrow">                       │</span>
+<span class="arrow">  │ </span> (JSON)<span class="arrow">  │   │                                                     │</span>
+<span class="arrow">  └──────────┘   │  </span><span class="node">triage</span> <span class="arrow">──▶</span> <span class="node">gather_context</span> <span class="arrow">──▶</span> <span class="node">create_ticket</span> <span class="arrow">──▶</span> <span class="node">notify_team</span><span class="arrow">  │</span>
+<span class="arrow">                 │ </span> (no tools)   (GitHub)          (Linear)        (Slack+Gmail)<span class="arrow"> │</span>
+<span class="arrow">                 │                                                             │</span>
+<span class="arrow">                 │  Model: </span><span class="highlight">Gemini 2.5 Flash Lite</span><span class="arrow">                                │</span>
+<span class="arrow">                 └─────────────────────────────────────────────────────────────┘</span></div>
+
+    <div class="card-grid card-grid-2 reveal reveal-delay-3" style="margin-top: 2rem;">
+      <div class="card">
+        <h3>Sample Incidents</h3>
+        <table class="data-table">
+          <thead><tr><th>ID</th><th>Title</th><th>Severity</th></tr></thead>
+          <tbody>
+            <tr><td class="mono" style="font-size: 0.8rem;">INC-2026-0145</td><td>Database primary failover</td><td><span class="accent-red">P1</span></td></tr>
+            <tr><td class="mono" style="font-size: 0.8rem;">INC-2026-0142</td><td>Auth service 500 errors</td><td><span class="accent-orange">P2</span></td></tr>
+            <tr><td class="mono" style="font-size: 0.8rem;">INC-2026-0143</td><td>Slow product search</td><td><span class="accent-yellow">P3</span></td></tr>
+            <tr><td class="mono" style="font-size: 0.8rem;">INC-2026-0144</td><td>CSS rendering on checkout</td><td><span class="accent-green">P4</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Eval Results</h3>
+        <div style="margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 0.9rem;">Triage Accuracy</span>
+            <span class="mono accent-cyan" style="font-weight: 700;">6/7</span>
+          </div>
+          <div style="height: 6px; background: #1a1a2e; border-radius: 3px; overflow: hidden;">
+            <div style="width: 85.7%; height: 100%; background: linear-gradient(90deg, #00d4ff, #0090ff); border-radius: 3px;"></div>
+          </div>
+        </div>
+        <div style="margin-top: 1.2rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 0.9rem;">Routing Accuracy</span>
+            <span class="mono accent-green" style="font-weight: 700;">4/4</span>
+          </div>
+          <div style="height: 6px; background: #1a1a2e; border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; height: 100%; background: linear-gradient(90deg, #00e88f, #00b06f); border-radius: 3px;"></div>
+          </div>
+        </div>
+        <p style="font-size: 0.8rem; color: #6a6a80; margin-top: 1.2rem;">
+          Triage miss: edge case where LLM chose P2 over P1 for infra-down &mdash; useful finding about severity classification behavior.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 6: WHAT WORKED / WHAT DIDN'T ═══════════════════ -->
+<section id="experience">
+  <div class="section-inner">
+    <div class="section-label reveal">Build Experience</div>
+    <h2 class="reveal">What Worked &amp; What Didn't<span class="accent-green">.</span></h2>
+
+    <div class="card-grid card-grid-2">
+      <div class="card reveal reveal-delay-1">
+        <h3><span class="accent-green">&#10003;</span> What Worked</h3>
+        <div style="margin-top: 1rem;">
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: #e0e0e8;">Arcade Headers Auth</strong>
+            <p style="font-size: 0.85rem;">The original plan anticipated complex OAuth interrupt handling. Arcade Headers (API key + user ID) meant the agent just worked. No interactive auth, no token expiration, no 3am problems.</p>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: #e0e0e8;">MCP Gateway as Single Endpoint</strong>
+            <p style="font-size: 0.85rem;">One URL, one client, all tools. The Gateway's design aligned perfectly with <code style="color: #00d4ff;">langchain-mcp-adapters</code>. Eliminated ~100 lines of per-server configuration.</p>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: #e0e0e8;">Model Agnosticism</strong>
+            <p style="font-size: 0.85rem;">Swapped OpenAI → Gemini at the LangChain level with minimal friction. The Gateway genuinely doesn't care what LLM you use.</p>
+          </div>
+          <div>
+            <strong style="color: #e0e0e8;">Tool Routing Architecture</strong>
+            <p style="font-size: 0.85rem;">Per-node tool binding worked elegantly. Triage gets zero tools (pure reasoning), each subsequent node gets exactly what it needs.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card reveal reveal-delay-2">
+        <h3><span class="accent-red">&#10007;</span> What Didn't</h3>
+        <div style="margin-top: 1rem;">
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: #e0e0e8;">GitHub 404 Bug</strong>
+            <p style="font-size: 0.85rem;">
+              <code style="color: #ff6b35; font-size: 0.8rem;">github.com/owner/repo/repos/owner/repo/pulls</code><br>
+              URL path doubled, hitting github.com instead of api.github.com. Platform bug in Arcade's GitHub tool &mdash; raw 404 with no context caused misdiagnosis.
+            </p>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: #e0e0e8;">Eval Framework Lock-in</strong>
+            <p style="font-size: 0.85rem;"><code style="color: #ff6b35;">arcade_evals</code> hardcoded OpenAI assumptions: <code>seed=42</code>, <code>strict:true</code>. Broke immediately with Gemini. Required contributing PR #783 to fix.</p>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: #e0e0e8;">Observability Took 3x Longer</strong>
+            <p style="font-size: 0.85rem;">Plan said "~1 hour." Reality: 3 hours. Traces ≠ metrics, <code>rate()</code> on batch data = NaN, Docker networking breakage when adding Tempo.</p>
+          </div>
+          <div>
+            <strong style="color: #e0e0e8;">Error Messages Are Opaque</strong>
+            <p style="font-size: 0.85rem;">Raw HTTP 404s with no context. No suggestion of what went wrong or how to fix it. Both human and LLM misdiagnosed the same error.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight-box reveal reveal-delay-3">
+      <p>"Architecture plans survive. Integration details don't. The 4-node pipeline was exactly right. Every library choice and auth assumption changed on contact with the tools."</p>
+      <div class="attribution">&mdash; Session 4 Retrospective</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 7: GAP ANALYSIS ═══════════════════ -->
+<section id="gaps">
+  <div class="section-inner">
+    <div class="section-label reveal">Platform Analysis</div>
+    <h2 class="reveal">Gap Analysis<span class="accent-red">.</span></h2>
+    <p class="reveal reveal-delay-1" style="max-width: 700px; margin-bottom: 2rem;">
+      Every gap below was discovered hands-on, not theorized. They're ordered by how much they'd block an enterprise customer from going to production.
+    </p>
+
+    <div class="card-grid card-grid-2">
+      <div class="card reveal reveal-delay-1">
+        <div class="gap-severity">
+          <span class="tag tag-orange" style="font-size: 0.65rem;">Critical</span>
+        </div>
+        <h3>No Native Observability</h3>
+        <p style="font-size: 0.85rem;">
+          Every tool call flows through the Gateway &mdash; Arcade sits on the most valuable telemetry data in the agent stack. But there's no OTLP export, no span correlation, no cost tracking. Developers must build the entire OTel pipeline from scratch.
+        </p>
+      </div>
+
+      <div class="card reveal reveal-delay-2">
+        <div class="gap-severity">
+          <span class="tag tag-orange" style="font-size: 0.65rem;">Critical</span>
+        </div>
+        <h3>Error Messages Are Not Actionable</h3>
+        <p style="font-size: 0.85rem;">
+          The GitHub 404 bug produced a raw HTTP error with no context. Both human and LLM misdiagnosed it. Enterprise tools need errors that say what went wrong, why, and what to try next.
+        </p>
+      </div>
+
+      <div class="card reveal reveal-delay-2">
+        <div class="gap-severity">
+          <span class="tag tag-purple" style="font-size: 0.65rem;">High</span>
+        </div>
+        <h3>Two-Tier Tool Problem</h3>
+        <p style="font-size: 0.85rem;">
+          Custom tools registered via the SDK don't get the same auth flow, OTel spans, eval harness, or discovery as native tools. Two classes of tools &mdash; observable natives and invisible customs &mdash; is worse than no gateway at all.
+        </p>
+      </div>
+
+      <div class="card reveal reveal-delay-3">
+        <div class="gap-severity">
+          <span class="tag tag-purple" style="font-size: 0.65rem;">High</span>
+        </div>
+        <h3>Eval Framework Assumes OpenAI</h3>
+        <p style="font-size: 0.85rem;">
+          A model-agnostic platform needs model-agnostic evaluation. <code>arcade_evals</code> hardcodes <code>seed=42</code>, <code>strict:true</code>, and string tool names &mdash; all OpenAI-specific. PR #783 fixes this.
+        </p>
+      </div>
+
+      <div class="card reveal reveal-delay-3">
+        <div class="gap-severity">
+          <span class="tag tag-cyan" style="font-size: 0.65rem;">Medium</span>
+        </div>
+        <h3>Gateway &ne; Framework Positioning</h3>
+        <p style="font-size: 0.85rem;">
+          Arcade's moat is auth aggregation, tool composition, and the write path. Pushing the MCP Server SDK as "build your own" dilutes this positioning. The Gateway is the product; the SDK is a commodity.
+        </p>
+      </div>
+
+      <div class="card reveal reveal-delay-4">
+        <div class="gap-severity">
+          <span class="tag tag-cyan" style="font-size: 0.65rem;">Medium</span>
+        </div>
+        <h3>Onboarding Friction</h3>
+        <p style="font-size: 0.85rem;">
+          The Gateway Assistant MCP exists but isn't surfaced. Dropping into the dashboard is clunky. The first-run experience doesn't show developers the "aha moment" fast enough.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 8: 90-DAY ROADMAP ═══════════════════ -->
+<section id="roadmap">
+  <div class="section-inner">
+    <div class="section-label reveal">Strategy</div>
+    <h2 class="reveal">90-Day Roadmap<span class="accent-purple">.</span></h2>
+    <p class="reveal reveal-delay-1" style="max-width: 700px; margin-bottom: 2.5rem;">
+      Three months, three themes. Each month builds on the last. The sequence matters: you can't sell governance to the C-suite until the developer experience is solid.
+    </p>
+
+    <div class="timeline reveal reveal-delay-2">
+      <div class="timeline-item">
+        <div class="timeline-month accent-cyan">Month 1 &mdash; Growth &amp; Usability</div>
+        <div class="card" style="margin-top: 0.5rem;">
+          <h3>Lean into what's already there</h3>
+          <p style="font-size: 0.9rem; margin-bottom: 1rem;">
+            The Gateway Assistant MCP exists but I didn't know about it until deep into the build. The dashboard is clunky. The first-run experience matters more than any feature.
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <span class="tag tag-cyan">Developer onboarding</span>
+            <span class="tag tag-cyan">Gateway discovery</span>
+            <span class="tag tag-cyan">Error messages</span>
+            <span class="tag tag-cyan">Dashboard UX</span>
+          </div>
+          <div class="divider"></div>
+          <p style="font-size: 0.8rem; color: #6a6a80;">
+            <strong style="color: #9a9ab0;">What we're NOT doing:</strong> New integrations. Fix the experience with existing tools before adding more.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-month accent-purple">Month 2 &mdash; Gateway as Platform</div>
+        <div class="card" style="margin-top: 0.5rem;">
+          <h3>Ship what Anthropic isn't building</h3>
+          <p style="font-size: 0.9rem; margin-bottom: 1rem;">
+            Anthropic is pushing MCP registries and remote servers. They're building the transport layer. Arcade's moat is auth aggregation, tool composition, and the write path. Double down on the Gateway &mdash; that's the product.
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <span class="tag tag-purple">Native OTel export</span>
+            <span class="tag tag-purple">Custom tool parity</span>
+            <span class="tag tag-purple">Provider-agnostic evals</span>
+            <span class="tag tag-purple">Cost tracking</span>
+          </div>
+          <div class="divider"></div>
+          <p style="font-size: 0.8rem; color: #6a6a80;">
+            <strong style="color: #9a9ab0;">What we're NOT doing:</strong> Building our own MCP server SDK. That's commodity infrastructure. Focus on what flows through the Gateway.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-month accent-orange">Month 3 &mdash; Enterprise Governance</div>
+        <div class="card" style="margin-top: 0.5rem;">
+          <h3>Ship Tron &mdash; take the C-suite conversation</h3>
+          <p style="font-size: 0.9rem; margin-bottom: 1rem;">
+            Security teams can't wrangle agentic AI today. Config-driven policy enforcement &mdash; declarative YAML that non-coders can audit and edit &mdash; is how you move from "developer tool" to "enterprise platform." It's also how you expand the buyer from engineering to security and compliance.
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <span class="tag tag-orange">Policy engine</span>
+            <span class="tag tag-orange">Contextual Access</span>
+            <span class="tag tag-orange">Audit logging</span>
+            <span class="tag tag-orange">Compliance controls</span>
+          </div>
+          <div class="divider"></div>
+          <p style="font-size: 0.8rem; color: #6a6a80;">
+            <strong style="color: #9a9ab0;">What we're NOT doing:</strong> Full IAM. Start with tool-call governance. Prove the pattern works before expanding scope.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 9: PROTOTYPES ═══════════════════ -->
+<section id="prototypes">
+  <div class="section-inner">
+    <div class="section-label reveal">Prototypes</div>
+    <h2 class="reveal">I didn't just write about it<span class="accent-orange">.</span></h2>
+    <p class="reveal reveal-delay-1" style="max-width: 700px; margin-bottom: 2rem;">
+      Two working prototypes that demonstrate roadmap items. Not mockups. Not proposals. Running code you can clone, test, and curl.
+    </p>
+
+    <div class="card-grid card-grid-2">
+      <!-- TRON -->
+      <div class="card reveal reveal-delay-2" style="border-color: #2a1a3e;">
+        <span class="tag tag-orange" style="margin-bottom: 12px;">Prototype</span>
+        <h3 style="font-size: 1.3rem;">Tron <span style="font-size: 0.75rem; color: #7a7a90;">Policy Engine</span></h3>
+        <p style="font-size: 0.9rem; margin-bottom: 1.2rem;">
+          Config-driven policy engine implementing Arcade's Contextual Access webhook API. Named after the 1982 arcade game where Tron is a security program that monitors the system &mdash; and the villain is the <strong class="accent-cyan">MCP</strong>.
+        </p>
+
+        <div class="code-block" style="margin-bottom: 1rem;">
+          <span class="code-label">policies.yaml</span>
+<span class="comment"># Block email escalation for P3/P4 incidents</span>
+<span class="keyword">pre</span>:
+  <span class="keyword">rules</span>:
+    - <span class="keyword">description</span>: <span class="string">"Block email for P3/P4"</span>
+      <span class="keyword">tool</span>: <span class="string">"Gmail_SendEmail"</span>
+      <span class="keyword">condition</span>:
+        <span class="keyword">field</span>: <span class="string">"inputs.subject"</span>
+        <span class="keyword">matches</span>: <span class="string">"\\[(P3|P4)\\s*INCIDENT\\]"</span>
+      <span class="keyword">action</span>: <span class="type">block</span>
+
+<span class="comment"># Redact PII from tool outputs</span>
+<span class="keyword">post</span>:
+  <span class="keyword">rules</span>:
+    - <span class="keyword">description</span>: <span class="string">"Redact emails"</span>
+      <span class="keyword">pattern</span>: <span class="string">"[\\w.-]+@[\\w.-]+"</span>
+      <span class="keyword">replacement</span>: <span class="string">"[EMAIL_REDACTED]"</span></div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem;">
+          <span class="tag tag-green" style="font-size: 0.65rem;">26 Tests Passing</span>
+          <span class="tag tag-cyan" style="font-size: 0.65rem;">FastAPI Server</span>
+          <span class="tag tag-purple" style="font-size: 0.65rem;">Zero Agent Changes</span>
+        </div>
+
+        <p style="font-size: 0.8rem; color: #7a7a90;">
+          The agent doesn't know Tron exists. Policy is fully externalized. Governance is a layer, not embedded logic.
+        </p>
+      </div>
+
+      <!-- PR #783 -->
+      <div class="card reveal reveal-delay-3" style="border-color: #1a2a3e;">
+        <span class="tag tag-cyan" style="margin-bottom: 12px;">Upstream PR</span>
+        <h3 style="font-size: 1.3rem;">PR #783 <span style="font-size: 0.75rem; color: #7a7a90;">InferenceBackend Protocol</span></h3>
+        <p style="font-size: 0.9rem; margin-bottom: 1.2rem;">
+          Provider-agnostic eval backends for <code>arcade_evals</code>. Contributed to <code>ArcadeAI/arcade-mcp</code> when Gemini broke the eval framework. ~200 lines, zero breaking changes.
+        </p>
+
+        <div class="code-block" style="margin-bottom: 1rem;">
+          <span class="code-label">Python</span>
+<span class="comment"># Before: OpenAI-only</span>
+results = <span class="keyword">await</span> suite.<span class="function">run</span>(client, model)
+
+<span class="comment"># After: any provider</span>
+backend = <span class="function">OpenAICompatBackend</span>(
+    client, model=<span class="string">"gemini-2.5-flash"</span>,
+    seed=<span class="type">None</span>, strict=<span class="type">False</span>
+)
+results = <span class="keyword">await</span> suite.<span class="function">run</span>(backend=backend)
+
+<span class="comment"># Or bring your own</span>
+<span class="keyword">class</span> <span class="type">MyBackend</span>:
+    <span class="keyword">async def</span> <span class="function">call_with_tools</span>(self, ...):
+        ...</div>
+
+        <table class="data-table" style="margin-bottom: 1rem;">
+          <thead><tr><th>Provider</th><th>seed</th><th>strict</th></tr></thead>
+          <tbody>
+            <tr><td>OpenAI</td><td class="accent-green">Yes</td><td class="accent-green">Yes</td></tr>
+            <tr><td>Gemini</td><td class="accent-red">No</td><td class="accent-red">No</td></tr>
+            <tr><td>Anthropic</td><td class="accent-red">N/A</td><td class="accent-red">N/A</td></tr>
+            <tr><td>Custom</td><td>You decide</td><td>You decide</td></tr>
+          </tbody>
+        </table>
+
+        <p style="font-size: 0.8rem; color: #7a7a90;">
+          A model-agnostic platform needs model-agnostic evaluation infrastructure. Protocol over ABC &mdash; duck typing over class hierarchies.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 10: OBSERVABILITY DEEP DIVE ═══════════════════ -->
+<section id="observability">
+  <div class="section-inner">
+    <div class="section-label reveal">Deep Dive</div>
+    <h2 class="reveal">The Observability Stack<span class="accent-yellow">.</span></h2>
+    <p class="reveal reveal-delay-1" style="max-width: 700px; margin-bottom: 2rem;">
+      Full OpenTelemetry pipeline: traces, span-derived metrics, and a 9-panel Grafana dashboard. This is what every Arcade customer will need to build &mdash; unless Arcade ships it natively.
+    </p>
+
+    <div class="arch-diagram reveal reveal-delay-2" style="margin-bottom: 2rem; font-size: clamp(0.55rem, 0.9vw, 0.72rem);">
+<span class="highlight">LangChain Traces</span> <span class="arrow">──▶</span> <span class="service">OTLP Collector</span> <span class="arrow">──┬──▶</span> <span class="service">Tempo</span>        <span class="arrow">(traces)</span>
+                        <span class="arrow">(gRPC :4317)</span>  <span class="arrow"> │</span>
+                                       <span class="arrow"> ├──▶</span> <span class="highlight">spanmetrics</span>  <span class="arrow">(bridge)</span>
+                                       <span class="arrow"> │</span>
+                                       <span class="arrow"> └──▶</span> <span class="service">Prometheus</span>  <span class="arrow">──▶</span> <span class="highlight">Grafana</span> <span class="arrow">(:3000)</span>
+                                            <span class="arrow">(scrape :8888)</span></div>
+
+    <div class="card-grid card-grid-3 reveal reveal-delay-3">
+      <div class="card" style="text-align: center;">
+        <div class="stat-number accent-cyan" style="font-size: 2rem;">13.1s</div>
+        <div class="stat-label">E2E Workflow</div>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem;">Per incident, fully triaged</p>
+      </div>
+      <div class="card" style="text-align: center;">
+        <div class="stat-number accent-purple" style="font-size: 2rem;">805ms</div>
+        <div class="stat-label">LLM Call Latency</div>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem;">Gemini avg per call</p>
+      </div>
+      <div class="card" style="text-align: center;">
+        <div class="stat-number accent-orange" style="font-size: 2rem;">9.5K</div>
+        <div class="stat-label">Tokens In / 809 Out</div>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem;">Input-heavy, lean outputs</p>
+      </div>
+    </div>
+
+    <div class="insight-box reveal reveal-delay-4" style="margin-top: 2rem;">
+      <p>"Arcade sits on the most valuable telemetry data in the agent stack. Every tool call flows through the Gateway. Emitting OTLP traces from that chokepoint would eliminate the need for developer-side instrumentation entirely."</p>
+      <div class="attribution">&mdash; Month 2 Roadmap Rationale</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 11: BEYOND 90 DAYS ═══════════════════ -->
+<section id="beyond">
+  <div class="section-inner">
+    <div class="section-label reveal">Vision</div>
+    <h2 class="reveal">Beyond 90 Days<span class="accent-cyan">.</span></h2>
+    <p class="reveal reveal-delay-1" style="max-width: 700px; margin-bottom: 2rem;">
+      The 90-day roadmap is tight and self-contained. These are the next horizons &mdash; informed by the build but requiring more market signal before committing resources.
+    </p>
+
+    <div class="card-grid card-grid-2 reveal reveal-delay-2">
+      <div class="card">
+        <h3><span class="accent-cyan">&#9830;</span> Agent Gateway (not just Tool Gateway)</h3>
+        <p style="font-size: 0.9rem; margin-bottom: 1rem;">
+          Today, Arcade sees every tool call. With an LLM proxy layer, it sees every prompt too. Combined: every prompt and every action in one audit log. This is the "full-stack agent observability" play.
+        </p>
+        <div class="insight-box" style="margin: 0;">
+          <p style="font-size: 0.85rem;">"LiteLLM does exactly what Arcade doesn't: it sits between the agent and the LLM. Combined, you'd own both traffic streams."</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><span class="accent-purple">&#9830;</span> Open Source Partnership Strategy</h3>
+        <p style="font-size: 0.9rem; margin-bottom: 1rem;">
+          The smart move: prove demand first with an open-source integration (LiteLLM, OpenLLMetry) before committing engineering resources or M&A capital. Co-partnerships validate the thesis cheaply.
+        </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem;">
+          <span class="tag tag-cyan" style="font-size: 0.65rem;">LiteLLM</span>
+          <span class="tag tag-purple" style="font-size: 0.65rem;">OpenLLMetry</span>
+          <span class="tag tag-orange" style="font-size: 0.65rem;">Prove demand first</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card reveal reveal-delay-3" style="margin-top: 1.5rem;">
+      <h3><span class="accent-orange">&#9830;</span> The Competitive Moat</h3>
+      <p style="font-size: 0.9rem; margin-bottom: 1rem;">
+        Anthropic is building MCP registries and remote servers. They own the transport layer. They are <em>not</em> building:
+      </p>
+      <div class="card-grid card-grid-3" style="margin-top: 1rem;">
+        <div style="padding: 12px; background: rgba(0,212,255,0.05); border-radius: 8px; border: 1px solid rgba(0,212,255,0.15);">
+          <strong style="color: #00d4ff; font-size: 0.85rem;">Auth Aggregation</strong>
+          <p style="font-size: 0.8rem;">One API key for 5 OAuth providers</p>
+        </div>
+        <div style="padding: 12px; background: rgba(123,97,255,0.05); border-radius: 8px; border: 1px solid rgba(123,97,255,0.15);">
+          <strong style="color: #7b61ff; font-size: 0.85rem;">Tool Composition</strong>
+          <p style="font-size: 0.8rem;">One endpoint for multiple services</p>
+        </div>
+        <div style="padding: 12px; background: rgba(255,107,53,0.05); border-radius: 8px; border: 1px solid rgba(255,107,53,0.15);">
+          <strong style="color: #ff6b35; font-size: 0.85rem;">The Write Path</strong>
+          <p style="font-size: 0.8rem;">Most MCP servers are read-only; Arcade creates, sends, modifies</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 12: COLLABORATION ═══════════════════ -->
+<section id="collab">
+  <div class="section-inner">
+    <div class="section-label reveal">Let's Talk</div>
+    <h2 class="reveal">Collaboration Questions<span class="accent-green">.</span></h2>
+    <p class="reveal reveal-delay-1" style="max-width: 700px; margin-bottom: 2rem;">
+      A take-home should start a conversation, not end one. These are the questions I'd want to discuss with the team.
+    </p>
+
+    <div class="card-grid card-grid-2">
+      <div class="card reveal reveal-delay-1">
+        <span class="accent-cyan" style="font-size: 1.5rem; font-weight: 800;">01</span>
+        <h3 style="margin-top: 8px;">Governance Buyer</h3>
+        <p style="font-size: 0.9rem;">Who buys Contextual Access today? Is the buyer engineering (DevOps/platform teams) or security/compliance? Does the roadmap sequence change if governance is already the wedge?</p>
+      </div>
+      <div class="card reveal reveal-delay-2">
+        <span class="accent-purple" style="font-size: 1.5rem; font-weight: 800;">02</span>
+        <h3 style="margin-top: 8px;">Gateway vs. SDK Strategy</h3>
+        <p style="font-size: 0.9rem;">How does the team think about the Gateway (consumption) vs. MCP Server SDK (creation) positioning? Is there a world where both win, or are they inherently in tension?</p>
+      </div>
+      <div class="card reveal reveal-delay-3">
+        <span class="accent-orange" style="font-size: 1.5rem; font-weight: 800;">03</span>
+        <h3 style="margin-top: 8px;">Observability Ownership</h3>
+        <p style="font-size: 0.9rem;">The Gateway sees every tool call. How far should Arcade go into the observability space? Native OTLP export? Full dashboard? Or partner with existing tools (Datadog, Grafana Cloud)?</p>
+      </div>
+      <div class="card reveal reveal-delay-4">
+        <span class="accent-green" style="font-size: 1.5rem; font-weight: 800;">04</span>
+        <h3 style="margin-top: 8px;">Enterprise Readiness</h3>
+        <p style="font-size: 0.9rem;">What's the biggest gap between current state and enterprise-ready? Is it governance? Observability? Multi-tenancy? SOC 2? The answer changes the roadmap sequence.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 13: HOW I WORK ═══════════════════ -->
+<section id="process">
+  <div class="section-inner">
+    <div class="section-label reveal">Process</div>
+    <h2 class="reveal">How I Work with AI<span class="accent-purple">.</span></h2>
+    <p class="reveal reveal-delay-1" style="max-width: 700px; margin-bottom: 2rem;">
+      This entire project was built with AI assistants. The vibe-coding session logs document every decision, every mistake, and every course correction.
+    </p>
+
+    <div class="card-grid card-grid-3 reveal reveal-delay-2">
+      <div class="card">
+        <h3 style="color: #00d4ff;">Human Provides</h3>
+        <ul style="list-style: none; font-size: 0.88rem; color: #b0b0c0;">
+          <li style="margin-bottom: 8px;">&#8226; Intent &amp; context</li>
+          <li style="margin-bottom: 8px;">&#8226; Strategic decisions</li>
+          <li style="margin-bottom: 8px;">&#8226; Product intuition</li>
+          <li style="margin-bottom: 8px;">&#8226; Audience awareness</li>
+          <li>&#8226; Quality judgment</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color: #7b61ff;">AI Provides</h3>
+        <ul style="list-style: none; font-size: 0.88rem; color: #b0b0c0;">
+          <li style="margin-bottom: 8px;">&#8226; Implementation speed</li>
+          <li style="margin-bottom: 8px;">&#8226; Breadth of knowledge</li>
+          <li style="margin-bottom: 8px;">&#8226; Unflinching critique</li>
+          <li style="margin-bottom: 8px;">&#8226; Parallel exploration</li>
+          <li>&#8226; Tireless iteration</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color: #ff6b35;">Multi-Model</h3>
+        <ul style="list-style: none; font-size: 0.88rem; color: #b0b0c0;">
+          <li style="margin-bottom: 8px;">&#8226; Claude &rarr; code &amp; architecture</li>
+          <li style="margin-bottom: 8px;">&#8226; Gemini &rarr; infra &amp; strategy</li>
+          <li style="margin-bottom: 8px;">&#8226; Cross-review catches bugs</li>
+          <li style="margin-bottom: 8px;">&#8226; Human orchestrates both</li>
+          <li>&#8226; Neither works as well alone</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="insight-box reveal reveal-delay-3" style="margin-top: 2rem;">
+      <p>"The pattern: human provides intent, context, and judgment. AI provides implementation speed, breadth of knowledge, and unflinching review. Neither works as well alone."</p>
+      <div class="attribution">&mdash; Session 4</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<section id="footer">
+  <div class="section-inner">
+    <p style="color: #4a4a60; font-size: 0.85rem; margin-bottom: 8px;">
+      Built with <span class="accent-cyan">Claude</span> + <span class="accent-orange">Gemini</span> &mdash; Enterprise PM Take-Home for Arcade AI
+    </p>
+    <p style="color: #3a3a4a; font-size: 0.75rem;">
+      <a href="https://github.com/pong-init/BossBattle" style="color: #4a4a60; text-decoration: none;" target="_blank">github.com/pong-init/BossBattle</a>
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
+<script>
+// ── Section config ──────────────────────────────────────────────
+const sections = [
+  { id: 'hero',          label: 'Hero' },
+  { id: 'about',         label: 'About Me' },
+  { id: 'assignment',    label: 'Assignment' },
+  { id: 'tldr',          label: 'TL;DR' },
+  { id: 'architecture',  label: 'Architecture' },
+  { id: 'experience',    label: 'Experience' },
+  { id: 'gaps',          label: 'Gap Analysis' },
+  { id: 'roadmap',       label: 'Roadmap' },
+  { id: 'prototypes',    label: 'Prototypes' },
+  { id: 'observability', label: 'Observability' },
+  { id: 'beyond',        label: 'Beyond 90d' },
+  { id: 'collab',        label: 'Questions' },
+  { id: 'process',       label: 'Process' },
+];
+
+// ── Build nav dots ──────────────────────────────────────────────
+const navDots = document.getElementById('nav-dots');
+sections.forEach((s, i) => {
+  const dot = document.createElement('button');
+  dot.className = 'nav-dot';
+  dot.setAttribute('aria-label', s.label);
+  dot.innerHTML = `<span class="tooltip">${s.label}</span>`;
+  dot.addEventListener('click', () => {
+    document.getElementById(s.id).scrollIntoView({ behavior: 'smooth' });
+  });
+  navDots.appendChild(dot);
+});
+const dots = navDots.querySelectorAll('.nav-dot');
+
+// ── Progress bar ────────────────────────────────────────────────
+const progressBar = document.getElementById('progress');
+function updateProgress() {
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+  progressBar.style.width = pct + '%';
+}
+
+// ── Active section tracking ─────────────────────────────────────
+function updateActiveDot() {
+  let current = 0;
+  const scrollPos = window.scrollY + window.innerHeight * 0.4;
+  sections.forEach((s, i) => {
+    const el = document.getElementById(s.id);
+    if (el && el.offsetTop <= scrollPos) current = i;
+  });
+  dots.forEach((d, i) => d.classList.toggle('active', i === current));
+}
+
+// ── Scroll-triggered reveal ─────────────────────────────────────
+const observer = new IntersectionObserver(
+  (entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  },
+  { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+);
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── Keyboard navigation ────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown' || e.key === 'j') {
+    e.preventDefault();
+    const current = getCurrentSection();
+    if (current < sections.length - 1) {
+      document.getElementById(sections[current + 1].id).scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+  if (e.key === 'ArrowUp' || e.key === 'k') {
+    e.preventDefault();
+    const current = getCurrentSection();
+    if (current > 0) {
+      document.getElementById(sections[current - 1].id).scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+});
+
+function getCurrentSection() {
+  let current = 0;
+  const scrollPos = window.scrollY + window.innerHeight * 0.4;
+  sections.forEach((s, i) => {
+    const el = document.getElementById(s.id);
+    if (el && el.offsetTop <= scrollPos) current = i;
+  });
+  return current;
+}
+
+// ── Scroll listeners ────────────────────────────────────────────
+let ticking = false;
+window.addEventListener('scroll', () => {
+  if (!ticking) {
+    requestAnimationFrame(() => {
+      updateProgress();
+      updateActiveDot();
+      ticking = false;
+    });
+    ticking = true;
+  }
+});
+
+// ── Init ────────────────────────────────────────────────────────
+updateProgress();
+updateActiveDot();
+</script>
+</body>
+</html>
