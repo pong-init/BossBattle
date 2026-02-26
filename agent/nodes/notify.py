@@ -19,6 +19,7 @@ async def notify_node(state: IncidentState, model_with_tools, tools_by_name: dic
         email_instruction = "Do NOT send an email (P3/P4 severity — Slack only)."
 
     prompt = NOTIFY_PROMPT.format(
+        incident_id=state.incident.id,
         severity=state.severity,
         incident_title=state.incident.title,
         ticket_url=state.linear_ticket_url or "No ticket URL",

@@ -1,0 +1,102 @@
+# Tron — BossBattle Policy Configuration
+# =========================================
+# Edit this file to change what the agent is allowed to do.
+# No code changes needed — restart the Tron server after editing.
+#
+# Rule evaluation: rules are evaluated top-to-bottom within each hook.
+# First matching rule with action "block" stops evaluation.
+# All matching "override" and "redact" rules are applied.
+
+# ── Authentication ──────────────────────────────────────────────
+auth:
+  bearer_token_env: "TRON_BEARER_TOKEN"
+
+# ── Access Hook: who can see which tools ────────────────────────
+access:
+  deny_rules:
+    - description: "Restrict Gmail to incident commanders only"
+      user_id_not_in:
+        - "alice@pixelcorp.com"
+        - "bob@pixelcorp.com"
+        - "oncall@pixelcorp.com"
+      deny:
+        Gmail:
+          tools: ["Gmail_SendEmail"]
+
+    - description: "Interns cannot create Linear tickets"
+      user_id_matches: ".*\\.intern@pixelcorp\\.com$"
+      deny:
+        Linear:
+          tools: ["Linear_CreateIssue"]
+
+# ── Pre-Execution Hook: validate inputs before tool runs ────────
+pre:
+  rules:
+    - description: "Block email escalation for P3/P4 incidents"
+      tool: "Gmail_SendEmail"
+      condition:
+        field: "inputs.subject"
+        matches: "\\[(P3|P4)\\s*(INCIDENT|incident)\\]"
+      action: block
+      error_message: >
+        Policy violation: P3/P4 incidents do not escalate to email.
+        Only P1 and P2 incidents trigger VP notification.
+
+    - description: "Require incident ID in Slack messages"
+      tool: "Slack_SendMessage"
+      condition:
+        field: "inputs.message"
+        not_matches: "INC-\\d{4}-\\d{4}"
+      action: block
+      error_message: >
+        Policy violation: All Slack incident messages must contain
+        an incident ID (format: INC-YYYY-NNNN).
+
+    - description: "Force Slack messages to #incidents channel"
+      tool: "Slack_SendMessage"
+      condition:
+        field: "inputs.channel_name"
+        not_equals: "#incidents"
+      action: override
+      override_inputs:
+        channel_name: "#incidents"
+
+    - description: "Block email to non-approved recipients"
+      tool: "Gmail_SendEmail"
+      condition:
+        field: "inputs.recipient"
+        not_in:
+          - "vp-eng@pixelcorp.com"
+          - "oncall@pixelcorp.com"
+          - "security@pixelcorp.com"
+      action: block
+      error_message: >
+        Policy violation: Gmail_SendEmail can only send to approved
+        recipients (vp-eng, oncall, security).
+
+# ── Post-Execution Hook: sanitize tool outputs ──────────────────
+post:
+  rules:
+    - description: "Redact email addresses from all tool outputs"
+      tool: "*"
+      redactions:
+        - pattern: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+          replacement: "[EMAIL_REDACTED]"
+
+    - description: "Redact IP addresses from all tool outputs"
+      tool: "*"
+      redactions:
+        - pattern: "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b"
+          replacement: "[IP_REDACTED]"
+
+    - description: "Redact AWS account IDs from all tool outputs"
+      tool: "*"
+      redactions:
+        - pattern: "\\b\\d{12}\\b"
+          replacement: "[AWS_ACCOUNT_REDACTED]"
+
+    - description: "Redact GitHub personal access tokens"
+      tool: "*"
+      redactions:
+        - pattern: "ghp_[A-Za-z0-9]{36}"
+          replacement: "[GITHUB_TOKEN_REDACTED]"

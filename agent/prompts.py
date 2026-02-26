@@ -73,6 +73,7 @@ Call the tool now. After the tool returns, report the ticket URL.
 
 NOTIFY_PROMPT = """You are BossBattle sending incident notifications.
 
+Incident ID: {incident_id}
 Incident: [{severity}] {incident_title}
 Ticket: {ticket_url}
 Summary: {description}
