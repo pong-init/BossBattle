@@ -9,19 +9,32 @@ receivers:
 processors:
   batch:
 
+connectors:
+  spanmetrics:
+    metrics_flush_interval: 15s
+    histogram:
+      explicit:
+        buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30]
+
 exporters:
   prometheus:
-    endpoint: "0.0.0.0:8888"
-  logging:
-    loglevel: debug
+    endpoint: "0.0.0.0:8889"
+    send_timestamps: true
+    metric_expiration: 180s
+  otlp/tempo:
+    endpoint: "tempo:4317"
+    tls:
+      insecure: true
+  debug:
+    verbosity: detailed
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging]
+      exporters: [spanmetrics, otlp/tempo, debug]
     metrics:
-      receivers: [otlp]
+      receivers: [otlp, spanmetrics]
       processors: [batch]
-      exporters: [prometheus, logging]
+      exporters: [prometheus, debug]
