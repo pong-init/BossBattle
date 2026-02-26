@@ -1,0 +1,62 @@
+[
+  {
+    "id": "INC-2026-0142",
+    "title": "Authentication service returning 500 errors",
+    "description": "Multiple users reporting login failures. Auth service health check failing. Started ~10 mins ago. Possibly related to recent auth provider migration.",
+    "severity_hint": "high",
+    "service": "auth-service",
+    "environment": "production",
+    "started_at": "2026-02-20T14:32:00Z",
+    "source": "datadog-monitor",
+    "metrics": {
+      "error_rate": "47%",
+      "affected_users_estimate": 12000,
+      "p99_latency_ms": 8500
+    }
+  },
+  {
+    "id": "INC-2026-0143",
+    "title": "Slow response times on product search",
+    "description": "Search API p95 latency increased from 200ms to 1.2s. No errors, just slow. Likely related to recent Redis changes.",
+    "severity_hint": "medium",
+    "service": "search-service",
+    "environment": "production",
+    "started_at": "2026-02-20T15:10:00Z",
+    "source": "datadog-monitor",
+    "metrics": {
+      "error_rate": "0.2%",
+      "affected_users_estimate": 500,
+      "p95_latency_ms": 1200
+    }
+  },
+  {
+    "id": "INC-2026-0144",
+    "title": "CSS rendering issue on checkout page",
+    "description": "Button alignment broken on mobile checkout. Screenshot attached. Low impact but customer-facing.",
+    "severity_hint": "low",
+    "service": "web-frontend",
+    "environment": "production",
+    "started_at": "2026-02-20T09:45:00Z",
+    "source": "customer-report",
+    "metrics": {
+      "error_rate": "0%",
+      "affected_users_estimate": 50,
+      "p95_latency_ms": 180
+    }
+  },
+  {
+    "id": "INC-2026-0145",
+    "title": "Database primary failover detected",
+    "description": "PostgreSQL primary node unresponsive. Automatic failover to replica initiated. All writes paused. CRITICAL.",
+    "severity_hint": "critical",
+    "service": "postgres-primary",
+    "environment": "production",
+    "started_at": "2026-02-20T03:15:00Z",
+    "source": "pagerduty",
+    "metrics": {
+      "error_rate": "100%",
+      "affected_users_estimate": 85000,
+      "p99_latency_ms": 30000
+    }
+  }
+]
